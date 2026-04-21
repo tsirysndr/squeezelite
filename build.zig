@@ -1,80 +1,62 @@
 const std = @import("std");
 
-// Although this function looks imperative, note that its job is to
-// declaratively construct a build graph that will be executed by an external
-// runner.
 pub fn build(b: *std.Build) void {
-    // Standard target options allows the person running `zig build` to choose
-    // what target to build for. Here we do not override the defaults, which
-    // means any target is allowed, and the default is native. Other options
-    // for restricting supported target set are available.
     const target = b.standardTargetOptions(.{});
-
-    // Standard optimization options allow the person running `zig build` to select
-    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
-    // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    const lib = b.addStaticLibrary(.{
-        .name = "squeezelite",
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
-        // .root_source_file = b.path("src/root.zig"),
+    const is_linux = target.result.os.tag == .linux;
+
+    const lib_module = b.createModule(.{
         .target = target,
         .optimize = optimize,
+        .link_libc = true,
     });
+    lib_module.addCSourceFiles(.{ .files = &all_sources, .flags = &cflags });
+    lib_module.addIncludePath(b.path("."));
+    if (!is_linux) lib_module.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
+    if (is_linux) lib_module.linkSystemLibrary("asound", .{});
+    lib_module.linkSystemLibrary("dl", .{});
+    lib_module.linkSystemLibrary("pthread", .{});
+    lib_module.linkSystemLibrary("m", .{});
+    if (is_linux) lib_module.linkSystemLibrary("rt", .{});
 
-    // This declares intent for the library to be installed into the standard
-    // location when the user invokes the "install" step (the default step when
-    // running `zig build`).
+    const lib = b.addLibrary(.{
+        .name = "squeezelite",
+        .root_module = lib_module,
+        .linkage = .static,
+    });
     b.installArtifact(lib);
+
+    const exe_module = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    exe_module.addCSourceFiles(.{ .files = &all_sources, .flags = &cflags });
+    exe_module.addIncludePath(b.path("."));
+    if (!is_linux) {
+        exe_module.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
+        exe_module.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
+        exe_module.linkSystemLibrary("portaudio", .{});
+    }
+    if (is_linux) exe_module.linkSystemLibrary("asound", .{});
+    exe_module.linkSystemLibrary("dl", .{});
+    exe_module.linkSystemLibrary("pthread", .{});
+    exe_module.linkSystemLibrary("m", .{});
+    if (is_linux) exe_module.linkSystemLibrary("rt", .{});
 
     const exe = b.addExecutable(.{
         .name = "squeezelite",
-        // .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = exe_module,
     });
-
-    // This declares intent for the executable to be installed into the
-    // standard location when the user invokes the "install" step (the default
-    // step when running `zig build`).
     b.installArtifact(exe);
 
-    // This *creates* a Run step in the build graph, to be executed when another
-    // step is evaluated that depends on it. The next line below will establish
-    // such a dependency.
     const run_cmd = b.addRunArtifact(exe);
-
-    // By making the run step depend on the install step, it will be run from the
-    // installation directory rather than directly from within the cache directory.
-    // This is not necessary, however, if the application depends on other installed
-    // files, this ensures they will be present and in the expected location.
     run_cmd.step.dependOn(b.getInstallStep());
 
-    // This allows the user to pass arguments to the application in the build
-    // command itself, like this: `zig build run -- arg1 arg2 etc`
     if (b.args) |args| {
         run_cmd.addArgs(args);
     }
-
-    exe.addCSourceFiles(.{ .files = &all_sources, .flags = &cflags });
-
-    lib.addCSourceFiles(.{ .files = &all_sources, .flags = &cflags });
-
-    exe.linkSystemLibrary("asound");
-    exe.linkSystemLibrary("dl");
-    exe.linkSystemLibrary("pthread");
-    exe.linkSystemLibrary("m");
-    exe.linkSystemLibrary("rt");
-    exe.linkLibC();
-
-    lib.linkSystemLibrary("asound");
-    lib.linkSystemLibrary("dl");
-    lib.linkSystemLibrary("pthread");
-    lib.linkSystemLibrary("m");
-    lib.linkSystemLibrary("rt");
-    lib.linkLibC();
 }
 
 const all_sources = [_][]const u8{
