@@ -107,4 +107,4 @@ const all_sources = [_][]const u8{
     "mpg.c",
 };
 
-const cflags = [_][]const u8{ "-std=gnu99", "-Wall", "-fPIC", "-O2", "-fcommon" };
+const cflags = [_][]const u8{ "-std=gnu99", "-Wall", "-fPIC", "-O2", "-fcommon", "-fno-sanitize=undefined" };
