@@ -73,12 +73,10 @@ jobs:
         run: |
           if [ "$RUNNER_OS" = "macOS" ]; then
             zig build \
-              -Dtarget=${{ matrix.target }} \
               -Doptimize=ReleaseSafe \
               -Dhomebrew-prefix="$(brew --prefix)"
           else
             zig build \
-              -Dtarget=${{ matrix.target }} \
               -Doptimize=ReleaseSafe
           fi
 
