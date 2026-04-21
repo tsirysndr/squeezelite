@@ -1,0 +1,91 @@
+name: Build
+
+on:
+  push:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: x86_64-linux
+            artifact: squeezelite-x86_64-linux
+
+          - runner: ubuntu-24.04-arm
+            target: aarch64-linux
+            artifact: squeezelite-aarch64-linux
+
+          - runner: macos-15-intel
+            target: x86_64-macos
+            artifact: squeezelite-x86_64-macos
+
+          - runner: macos-latest
+            target: aarch64-macos
+            artifact: squeezelite-aarch64-macos
+
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.16.0
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            libasound2-dev \
+            portaudio19-dev \
+            libflac-dev \
+            libvorbis-dev \
+            libfaad-dev \
+            libmpg123-dev \
+            libmad0-dev \
+            libopusfile-dev \
+            libsoxr-dev \
+            libavcodec-dev \
+            libavformat-dev \
+            libpulse-dev \
+            libssl-dev \
+            liblircclient-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install \
+            portaudio \
+            flac \
+            libvorbis \
+            faad2 \
+            mpg123 \
+            mad \
+            opusfile \
+            libsoxr \
+            ffmpeg \
+            openssl
+
+      - name: Build
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            zig build \
+              -Dtarget=${{ matrix.target }} \
+              -Doptimize=ReleaseSafe \
+              -Dhomebrew-prefix="$(brew --prefix)"
+          else
+            zig build \
+              -Dtarget=${{ matrix.target }} \
+              -Doptimize=ReleaseSafe
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: zig-out/bin/squeezelite
+          if-no-files-found: error

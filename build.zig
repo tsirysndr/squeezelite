@@ -6,6 +6,10 @@ pub fn build(b: *std.Build) void {
 
     const is_linux = target.result.os.tag == .linux;
 
+    // On macOS, Homebrew may not be in standard search paths.
+    // Pass -Dhomebrew-prefix=$(brew --prefix) to override the default.
+    const homebrew_prefix = b.option([]const u8, "homebrew-prefix", "Homebrew installation prefix (macOS)") orelse "/opt/homebrew";
+
     const lib_module = b.createModule(.{
         .target = target,
         .optimize = optimize,
@@ -13,7 +17,11 @@ pub fn build(b: *std.Build) void {
     });
     lib_module.addCSourceFiles(.{ .files = &all_sources, .flags = &cflags });
     lib_module.addIncludePath(b.path("."));
-    if (!is_linux) lib_module.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
+    if (!is_linux) {
+        lib_module.addIncludePath(.{ .cwd_relative = b.fmt("{s}/include", .{homebrew_prefix}) });
+        lib_module.addLibraryPath(.{ .cwd_relative = b.fmt("{s}/lib", .{homebrew_prefix}) });
+        lib_module.linkSystemLibrary("portaudio", .{});
+    }
     if (is_linux) lib_module.linkSystemLibrary("asound", .{});
     lib_module.linkSystemLibrary("dl", .{});
     lib_module.linkSystemLibrary("pthread", .{});
@@ -35,8 +43,8 @@ pub fn build(b: *std.Build) void {
     exe_module.addCSourceFiles(.{ .files = &all_sources, .flags = &cflags });
     exe_module.addIncludePath(b.path("."));
     if (!is_linux) {
-        exe_module.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
-        exe_module.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
+        exe_module.addIncludePath(.{ .cwd_relative = b.fmt("{s}/include", .{homebrew_prefix}) });
+        exe_module.addLibraryPath(.{ .cwd_relative = b.fmt("{s}/lib", .{homebrew_prefix}) });
         exe_module.linkSystemLibrary("portaudio", .{});
     }
     if (is_linux) exe_module.linkSystemLibrary("asound", .{});
