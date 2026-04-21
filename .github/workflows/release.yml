@@ -80,6 +80,10 @@ jobs:
       - name: Rename binary
         run: mv zig-out/bin/squeezelite zig-out/bin/${{ matrix.artifact }}
 
+      - name: Sign binary (macOS)
+        if: runner.os == 'macOS'
+        run: codesign --force --deep --sign - zig-out/bin/${{ matrix.artifact }}
+
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
