@@ -84,9 +84,9 @@ jobs:
       - name: Archive
         run: |
           chmod a+x zig-out/bin/squeezelite
-          tar -czf ${{ matrix.archive }}.tar.gz -C zig-out/bin squeezelite
+          tar -czf squeezelite-${{ github.ref_name }}-${{ matrix.archive }}.tar.gz -C zig-out/bin squeezelite
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ matrix.archive }}.tar.gz
+          files: squeezelite-${{ github.ref_name }}-${{ matrix.archive }}.tar.gz
