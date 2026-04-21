@@ -52,8 +52,7 @@ jobs:
             libavcodec-dev \
             libavformat-dev \
             libpulse-dev \
-            libssl-dev \
-            liblircclient-dev
+            libssl-dev
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
