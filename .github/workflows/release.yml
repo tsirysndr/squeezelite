@@ -11,16 +11,16 @@ jobs:
       matrix:
         include:
           - runner: ubuntu-latest
-            artifact: squeezelite-x86_64-linux
+            archive: x86_64-linux
 
           - runner: ubuntu-24.04-arm
-            artifact: squeezelite-aarch64-linux
+            archive: aarch64-linux
 
           - runner: macos-15-intel
-            artifact: squeezelite-x86_64-macos
+            archive: x86_64-macos
 
           - runner: macos-latest
-            artifact: squeezelite-aarch64-macos
+            archive: aarch64-macos
 
     runs-on: ${{ matrix.runner }}
 
@@ -77,14 +77,16 @@ jobs:
               -Doptimize=ReleaseSafe
           fi
 
-      - name: Rename binary
-        run: mv zig-out/bin/squeezelite zig-out/bin/${{ matrix.artifact }}
-
       - name: Sign binary (macOS)
         if: runner.os == 'macOS'
-        run: codesign --force --deep --sign - zig-out/bin/${{ matrix.artifact }}
+        run: codesign --force --deep --sign - zig-out/bin/squeezelite
+
+      - name: Archive
+        run: |
+          chmod a+x zig-out/bin/squeezelite
+          tar -czf ${{ matrix.archive }}.tar.gz -C zig-out/bin squeezelite
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: zig-out/bin/${{ matrix.artifact }}
+          files: ${{ matrix.archive }}.tar.gz
