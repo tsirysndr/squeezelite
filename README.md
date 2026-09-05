@@ -2,7 +2,17 @@ Squeezelite v1.9.x, Copyright 2012-2015 Adrian Smith, 2015-2024 Ralph Irving.<br
 <br>
 See the squeezelite manpage for usage details.<br>
 https://ralph-irving.github.io/squeezelite.html<br>
-<br>
+
+## Installation
+
+With [Homebrew](https://brew.sh):
+
+```sh
+brew install tsirysndr/tap/squeezelite
+```
+
+## License
+
 This program is free software: you can redistribute it and/or modify<br>
 it under the terms of the GNU General Public License as published by<br>
 the Free Software Foundation, either version 3 of the License, or<br>
